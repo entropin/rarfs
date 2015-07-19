@@ -14,6 +14,7 @@ namespace DokanNetMirror
     internal class Mirror : IDokanOperations
     {
         private readonly string _path;
+        private List<String> rarPaths;
 
         private const FileAccess DataAccess = FileAccess.ReadData |
                                               FileAccess.WriteData |
@@ -102,11 +103,7 @@ namespace DokanNetMirror
                             info.Context = new object();
                             return DokanError.ErrorSuccess;
                         }
-                        if (fileName.Contains("test_viertual"))
-                        {
-                            Console.WriteLine("Readinf virtual file");
-                            break;
-                        }
+
                        
                         return DokanError.ErrorFileNotFound;
                     }
@@ -125,7 +122,6 @@ namespace DokanNetMirror
             }
 
             info.Context = new object();
-
             Console.WriteLine("Path:" + pathExists);
             Console.WriteLine("Mode:" + mode);
             Console.WriteLine("Createing file:"+fileName);
@@ -177,21 +173,25 @@ namespace DokanNetMirror
 
         public DokanError ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
+            string loadPath = "E:\\buu\\test.txt";
             Console.WriteLine("Reading file:"+fileName);
-            if (info.Context == null || true) // memory mapped read
+
+            /* This is a simple hack to mark files as RARFiles, we need to change this, when we know how! */
+            String parentFolder = System.IO.Path.GetDirectoryName(fileName);
+            if (File.Exists(GetPath(parentFolder) + ".rar"))
             {
-                using (var stream = new FileStream("E:\\buu\\test.txt", FileMode.Open, System.IO.FileAccess.Read))
+                loadPath = "E:\\buu\\rar.txt";
+                Console.WriteLine("We are reading a rar File!!!!");
+            }
+
+            /* End hack */
+
+            using (var stream = new FileStream(loadPath, FileMode.Open, System.IO.FileAccess.Read))
                 {
                     stream.Position = offset;
                     bytesRead = stream.Read(buffer, 0, buffer.Length);
                 }
-            }
-            else // normal read
-            {
-                var stream = info.Context as FileStream;
-                stream.Position = offset;
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
-            }
+            
             return DokanError.ErrorSuccess;
         }
 
@@ -287,12 +287,12 @@ namespace DokanNetMirror
             {
                 //This is a virtual file
                 Console.WriteLine("###Opening a virtual folder:" + GetPath(fileName));
-                /*
+               
                 if (File.Exists(GetPath(fileName) + ".rar"))
                 {
                     files = GetRarFileContent(GetPath(fileName) + ".rar");
                 }
-                 * */
+                 
 
 
             }
@@ -310,7 +310,7 @@ namespace DokanNetMirror
                 {
                     //Not sure yet if we want to hide the real file
                     finale_files.Add(fileInfo);
-                    /*
+                   
                     string bareName = filename.Substring(0, filename.Length - extension.Length);
                     string virtFolder = parentFolder + "" + bareName;
                     if (!Directory.Exists(virtFolder))
@@ -318,7 +318,7 @@ namespace DokanNetMirror
                         FileInformation rarAsFolder = createVirtualFile(FileAttributes.Directory, 0, bareName);
                         finale_files.Add(rarAsFolder);
                     }
-                     * */
+                     
 
                 }
             }
