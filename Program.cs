@@ -14,7 +14,7 @@ namespace DokanNetMirror
         {
             try
             {
-                Mirror mirror = new Mirror("E:\\testdrive");
+                Mirror mirror = new Mirror("E:");
 
                 System.Threading.ThreadPool.QueueUserWorkItem(delegate
                 {

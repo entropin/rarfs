@@ -53,10 +53,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="DokanNet">
-      <HintPath>proprietary\DokanNet.dll</HintPath>
+      <HintPath>..\..\..\rarfs\DokanNet\bin\Debug\DokanNet.dll</HintPath>
     </Reference>
     <Reference Include="SharpCompress">
-      <HintPath>proprietary\SharpCompress.dll</HintPath>
+      <HintPath>..\..\..\smille_rarFS\proprietary\SharpCompress.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />

@@ -1,8 +1,0 @@
-C:\Users\entro\Documents\projekts\smille_rarFS\bin\Debug\DokanNetMirror.exe.config
-C:\Users\entro\Documents\projekts\smille_rarFS\bin\Debug\DokanNetMirror.exe
-C:\Users\entro\Documents\projekts\smille_rarFS\bin\Debug\DokanNetMirror.pdb
-C:\Users\entro\Documents\projekts\smille_rarFS\bin\Debug\DokanNet.dll
-C:\Users\entro\Documents\projekts\smille_rarFS\bin\Debug\SharpCompress.dll
-C:\Users\entro\Documents\projekts\smille_rarFS\obj\Debug\RARFS.csprojResolveAssemblyReference.cache
-C:\Users\entro\Documents\projekts\smille_rarFS\obj\Debug\DokanNetMirror.exe
-C:\Users\entro\Documents\projekts\smille_rarFS\obj\Debug\DokanNetMirror.pdb

@@ -7,7 +7,6 @@ using DokanNet;
 using SharpCompress;
 using SharpCompress.Reader;
 using SharpCompress.Common;
-
 using FileAccess = DokanNet.FileAccess;
 
 namespace DokanNetMirror
@@ -47,8 +46,9 @@ namespace DokanNetMirror
         public DokanError CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode,
                                      FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
-            if (fileName.Contains("desktop") || fileName.Contains("AutoRun") || fileName.Contains("autorun"))
-            {
+            //Clennup debug code
+            if (fileName.Contains("auto") || fileName.Contains("desktop") || fileName.Contains("Auto"))
+            { 
                 return DokanError.ErrorFileNotFound;
             }
 
@@ -70,7 +70,6 @@ namespace DokanNetMirror
             {
                 pathExists = false;
             }
-            
 
             switch (mode)
             {
@@ -88,34 +87,24 @@ namespace DokanNetMirror
                             return DokanError.ErrorSuccess;
                         }
                     }
-                    
                     else
                     {
-                        string rarPath = GetPath(fileName) + ".rar";
-                        if (File.Exists(rarPath))
+                        Console.WriteLine("This dose not exist and need to return error or we die! :"+ fileName);
+                        if (!Path.HasExtension(fileName))
                         {
+                            Console.WriteLine("Allow for virtual folder:"+fileName);
                             info.IsDirectory = true;
                             info.Context = new object();
-                            Console.WriteLine("This Folder is  realy a rar file:" + rarPath + "("+fileName+")");
                             return DokanError.ErrorSuccess;
-                        }/*
-                        else
+                        }
+                        if (fileName.Contains("test_viertual"))
                         {
-                            String parentFolder = GetPath(fileName);
-                                   rarPath      = GetPath(parentFolder) + ".rar";
-                            if (File.Exists(rarPath))
-                            {
-                                info.IsDirectory = false;
-                                Console.WriteLine("This file is realy inside a rar file:" + rarPath + "(" + fileName + ")");
-                                return DokanError.ErrorSuccess;
-                            }
-                           
-                        }*/
-                          
+                            Console.WriteLine("Readinf virtual file");
+                            break;
+                        }
+                       
+                        return DokanError.ErrorFileNotFound;
                     }
-
-                    Console.WriteLine("This is not a path so it must be a file");
-                     
                     break;
                 case FileMode.CreateNew:
                     if (pathExists)
@@ -130,93 +119,27 @@ namespace DokanNetMirror
                     break;
             }
 
-            try
-            {
-                String parentFolder = System.IO.Path.GetDirectoryName(fileName); ;
-                string rarPath = GetPath(parentFolder) + ".rar";
-                Console.WriteLine("RarPath:"+rarPath);
-                if (File.Exists(rarPath))
-                {
-                    Console.WriteLine("This file is realy inside a rar file:" + rarPath + "(" + fileName + ")");
-                    path = "e:\\buu\\test.txt";
-                }
+            info.Context = new object();
 
-                if (File.Exists(path)){
-                    info.Context = new FileStream(path, mode,
-                                                  readAccess
-                                                      ? System.IO.FileAccess.Read
-                                                      : System.IO.FileAccess.ReadWrite, share, 4096, options);
-                    info.IsDirectory = false;
-                    Console.WriteLine("Loding context from this temp file:"+path);
-                    return DokanError.ErrorSuccess;
-
-                }else{
-                    Console.WriteLine("trying to build file context from non existig file: " + path);
-
-                    return DokanError.ErrorAccessDenied;
-                }
-            }
-            catch (UnauthorizedAccessException) // Don't have access rights 
-            {
-                return DokanError.ErrorAccessDenied;
-            }
-
+            Console.WriteLine("Path:" + pathExists);
+            Console.WriteLine("Mode:" + mode);
+            Console.WriteLine("Createing file:"+fileName);
 
             return DokanError.ErrorSuccess;
         }
 
         public DokanError OpenDirectory(string fileName, DokanFileInfo info)
         {
-            Console.WriteLine("Open Directory");
-
-
-            string path = GetPath(fileName);
-            if (!Directory.Exists(path))
-            {
-                string virtOrgFilename = path + ".rar";
-                if (File.Exists(virtOrgFilename))
-                {
-                    return DokanError.ErrorSuccess;
-                }
-                else
-                {
-                    /*return DokanError.ErrorPathNotFound;*/
-                    return DokanError.ErrorSuccess;
-                }
-                
-            }
-
-            try
-            {
-                new DirectoryInfo(path).EnumerateFileSystemInfos().Any(); // You can't list directory
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return DokanError.ErrorAccessDenied;
-            }
             return DokanError.ErrorSuccess;
         }
 
         public DokanError CreateDirectory(string fileName, DokanFileInfo info)
         {
-
-            if (Directory.Exists(GetPath(fileName)))
-                return DokanError.ErrorAlreadyExists;
-
-            try
-            {
-                Directory.CreateDirectory(GetPath(fileName));
-                return DokanError.ErrorSuccess;
-            }
-            catch (UnauthorizedAccessException)
-            {
                 return DokanError.ErrorAccessDenied;
-            }
         }
 
         public DokanError Cleanup(string fileName, DokanFileInfo info)
         {
-
             if (info.Context != null && info.Context is FileStream)
             {
                 (info.Context as FileStream).Dispose();
@@ -239,7 +162,6 @@ namespace DokanNetMirror
 
         public DokanError CloseFile(string fileName, DokanFileInfo info)
         {
-
             if (info.Context != null && info.Context is FileStream)
             {
                 (info.Context as FileStream).Dispose();
@@ -248,11 +170,12 @@ namespace DokanNetMirror
             return DokanError.ErrorSuccess; // could recreate cleanup code hear but this is not called sometimes
         }
 
-        public DokanError ReadFile_old(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
+        public DokanError ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
-            if (info.Context == null) // memory mapped read
+            Console.WriteLine("Reading file:"+fileName);
+            if (info.Context == null || true) // memory mapped read
             {
-                using (var stream = new FileStream(GetPath(fileName), FileMode.Open, System.IO.FileAccess.Read))
+                using (var stream = new FileStream("E:\\buu\\test.txt", FileMode.Open, System.IO.FileAccess.Read))
                 {
                     stream.Position = offset;
                     bytesRead = stream.Read(buffer, 0, buffer.Length);
@@ -267,50 +190,9 @@ namespace DokanNetMirror
             return DokanError.ErrorSuccess;
         }
 
-        public DokanError ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
-        {
-
-            if (fileName.Contains("buu"))
-            {
-                Console.WriteLine("reading stream");
-            }
-            if (File.Exists(GetPath(fileName)))
-            {
-
-                if (info.Context == null) // memory mapped read
-                {
-                    using (var stream = new FileStream(GetPath(fileName), FileMode.Open, System.IO.FileAccess.Read))
-                    {
-                        
-                        stream.Position = offset;
-                        bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    }
-                }
-                else // normal read
-                {
-                    var stream = info.Context as FileStream;
-                    stream.Position = offset;
-                    bytesRead = stream.Read(buffer, 0, buffer.Length);
-                }
-                return DokanError.ErrorSuccess;
-            }
-            else
-            {
-                    using (var stream = new FileStream("e:\\buu\\test.txt", FileMode.Open, System.IO.FileAccess.Read))
-                    {
-                        stream.Position = offset;
-                        bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    }
-                return DokanError.ErrorSuccess;
-
-            }
-        }
-
-
         public DokanError WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset,
                                     DokanFileInfo info)
         {
-            Console.WriteLine("WriteFile");
             if (info.Context == null)
             {
                 using (var stream = new FileStream(GetPath(fileName), FileMode.Open, System.IO.FileAccess.Write))
@@ -331,7 +213,6 @@ namespace DokanNetMirror
 
         public DokanError FlushFileBuffers(string fileName, DokanFileInfo info)
         {
-
             try
             {
                 ((FileStream)(info.Context)).Flush();
@@ -345,14 +226,12 @@ namespace DokanNetMirror
 
         public DokanError GetFileInformation(string fileName, out FileInformation fileInfo, DokanFileInfo info)
         {
-            Console.WriteLine("GetFileInformatin" + fileName);
             // may be called with info.Context=null , but usually it isn't
             string path = GetPath(fileName);
-            FileSystemInfo finfo = new FileInfo("e:\\buu\\test.txt");
-
-            if (fileName.Contains("buu"))
+            FileSystemInfo finfo = new FileInfo(path);
+            if (!Path.HasExtension(path))
             {
-                Console.WriteLine("getting file information from verual file");
+                finfo = new DirectoryInfo(path);
                 fileInfo = new FileInformation
                 {
                     FileName = fileName,
@@ -360,65 +239,17 @@ namespace DokanNetMirror
                     CreationTime = finfo.CreationTime,
                     LastAccessTime = finfo.LastAccessTime,
                     LastWriteTime = finfo.LastWriteTime,
-                    Length = (finfo is FileInfo) ? ((FileInfo)finfo).Length : 0,
+                    Length = 10000,
                 };
 
-                info.IsDirectory = false;
-
-
-                return DokanError.ErrorSuccess;
-
             }
-            if (Directory.Exists(path))
+            else
             {
-               finfo = new DirectoryInfo(path);
+                fileInfo = createVirtualFile(FileAttributes.Normal, 99000000, fileName);
             }
-
-
+               
             
-                    fileInfo = new FileInformation
-                    {
-                        FileName = fileName,
-                        Attributes = finfo.Attributes,
-                        CreationTime = finfo.CreationTime,
-                        LastAccessTime = finfo.LastAccessTime,
-                        LastWriteTime = finfo.LastWriteTime,
-                        Length = (finfo is FileInfo) ? ((FileInfo)finfo).Length : 0,
-                    };
-                
 
-
-            return DokanError.ErrorSuccess;
-        }
-
-        public DokanError FindFiles_old(string fileName, out IList<FileInformation> files, DokanFileInfo info)
-        {
-            files = new DirectoryInfo(GetPath(fileName)).GetFileSystemInfos().Select(finfo => new FileInformation
-                                                                                                  {
-                                                                                                      Attributes =
-                                                                                                          finfo.
-                                                                                                          Attributes,
-                                                                                                      CreationTime =
-                                                                                                          finfo.
-                                                                                                          CreationTime,
-                                                                                                      LastAccessTime =
-                                                                                                          finfo.
-                                                                                                          LastAccessTime,
-                                                                                                      LastWriteTime =
-                                                                                                          finfo.
-                                                                                                          LastWriteTime,
-                                                                                                      Length =
-                                                                                                          (finfo is
-                                                                                                           FileInfo)
-                                                                                                              ? ((
-                                                                                                                 FileInfo
-                                                                                                                 ) finfo
-                                                                                                                ).
-                                                                                                                    Length
-                                                                                                              : 0,
-                                                                                                      FileName =
-                                                                                                          finfo.Name,
-                                                                                                  }).ToArray();
             return DokanError.ErrorSuccess;
         }
 
@@ -461,11 +292,13 @@ namespace DokanNetMirror
             {
                 //This is a virtual file
                 Console.WriteLine("###Opening a virtual folder:" + GetPath(fileName));
+                /*
                 if (File.Exists(GetPath(fileName) + ".rar"))
                 {
                     files = GetRarFileContent(GetPath(fileName) + ".rar");
                 }
-                
+                 * */
+
 
             }
             finale_files = new List<FileInformation>();
@@ -482,7 +315,7 @@ namespace DokanNetMirror
                 {
                     //Not sure yet if we want to hide the real file
                     finale_files.Add(fileInfo);
-                    
+                    /*
                     string bareName = filename.Substring(0, filename.Length - extension.Length);
                     string virtFolder = parentFolder + "" + bareName;
                     if (!Directory.Exists(virtFolder))
@@ -490,10 +323,13 @@ namespace DokanNetMirror
                         FileInformation rarAsFolder = createVirtualFile(FileAttributes.Directory, 0, bareName);
                         finale_files.Add(rarAsFolder);
                     }
+                     * */
 
                 }
             }
-            finale_files.Add(createVirtualFile(FileAttributes.Directory, 0, "temp_folder") );
+          
+            finale_files.Add(createVirtualFile(FileAttributes.Directory, 0, "temp_folder"));
+            finale_files.Add(createVirtualFile(FileAttributes.Archive, 888, "test_viertual.txt"));
 
 
 
@@ -502,7 +338,7 @@ namespace DokanNetMirror
 
         public static IList<FileInformation> GetRarFileContent(string path)
         {
-    
+
             IList<FileInformation> finale_files = new List<FileInformation>();
             using (Stream stream = File.OpenRead(path))
             {
@@ -520,7 +356,7 @@ namespace DokanNetMirror
                         FileInformation curFile = createVirtualFile(FileAttributes.ReadOnly, Length, curFileName);
                         finale_files.Add(curFile);
 
-                        
+
                         // reader.WriteEntryToDirectory(@"C:\temp", ExtractOptions.ExtractFullPath | ExtractOptions.Overwrite);
                     }
                     else
@@ -589,7 +425,6 @@ namespace DokanNetMirror
 
         public DokanError SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
-    
             try
             {
                 File.SetAttributes(GetPath(fileName), attributes);
@@ -677,7 +512,6 @@ namespace DokanNetMirror
 
         public DokanError SetEndOfFile(string fileName, long length, DokanFileInfo info)
         {
-
             try
             {
                 ((FileStream) (info.Context)).SetLength(length);
@@ -730,23 +564,22 @@ namespace DokanNetMirror
 
         public DokanError GetDiskFreeSpace(out long free, out long total, out long used, DokanFileInfo info)
         {
-
             string driveLetter = Path.GetPathRoot(_path);
             DriveInfo dinfo = new DriveInfo(driveLetter);
- 
+
             used = dinfo.AvailableFreeSpace;
             total = dinfo.TotalSize;
             free = dinfo.TotalFreeSpace;
-   
+
             return DokanError.ErrorSuccess;
         }
 
         public DokanError GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features,
                                                out string fileSystemName, DokanFileInfo info)
         {
-            volumeLabel = "AWSOME";
+            volumeLabel = "DOKAN";
 
-            fileSystemName = "AWSOME";
+            fileSystemName = "DOKAN";
 
             features = FileSystemFeatures.CasePreservedNames | FileSystemFeatures.CaseSensitiveSearch |
                        FileSystemFeatures.PersistentAcls | FileSystemFeatures.SupportsRemoteStorage |
@@ -759,41 +592,15 @@ namespace DokanNetMirror
         public DokanError GetFileSecurity(string fileName, out FileSystemSecurity security,
                                           AccessControlSections sections, DokanFileInfo info)
         {
-           try
-            {
-               security = new FileSecurity("e:\\buu\\test.txt", AccessControlSections.All);
-               return DokanError.ErrorSuccess;
-               security = info.IsDirectory
-                              ? (FileSystemSecurity) Directory.GetAccessControl(GetPath(fileName))
-                              : File.GetAccessControl(GetPath(fileName));
-                return DokanError.ErrorSuccess;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                security = null;
-                return DokanError.ErrorAccessDenied;
-            }
+            security = null;
+            return DokanError.ErrorError;
         }
 
         public DokanError SetFileSecurity(string fileName, FileSystemSecurity security, AccessControlSections sections,
                                           DokanFileInfo info)
         {
-            try
-            {
-                if (info.IsDirectory)
-                {
-                    Directory.SetAccessControl(GetPath(fileName), (DirectorySecurity) security);
-                }
-                else
-                {
-                    File.SetAccessControl(GetPath(fileName), (FileSecurity) security);
-                }
-                return DokanError.ErrorSuccess;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return DokanError.ErrorAccessDenied;
-            }
+            security = null;
+            return DokanError.ErrorError;
         }
 
         public DokanError Unmount(DokanFileInfo info)
