@@ -41,6 +41,11 @@ namespace DokanNetMirror
             return _path + fileName;
         }
 
+        private string GetSPath(string fileName)
+        {
+            return "S:" + fileName;
+        }
+
         #region Implementation of IDokanOperations
 
         public DokanError CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode,
@@ -52,7 +57,7 @@ namespace DokanNetMirror
                 return DokanError.ErrorFileNotFound;
             }
 
-            var path = GetPath(fileName);
+            var path = GetSPath( fileName );
 
             bool pathExists = true;
             bool pathIsDirectory = false;
@@ -64,7 +69,7 @@ namespace DokanNetMirror
 
             try
             {
-                pathIsDirectory = File.GetAttributes(path).HasFlag(FileAttributes.Directory);
+                pathIsDirectory = !Path.HasExtension( path );
             }
             catch (IOException)
             {
@@ -227,20 +232,10 @@ namespace DokanNetMirror
         public DokanError GetFileInformation(string fileName, out FileInformation fileInfo, DokanFileInfo info)
         {
             // may be called with info.Context=null , but usually it isn't
-            string path = GetPath(fileName);
-            FileSystemInfo finfo = new FileInfo(path);
+            string path = GetSPath(fileName);
             if (!Path.HasExtension(path))
             {
-                finfo = new DirectoryInfo(path);
-                fileInfo = new FileInformation
-                {
-                    FileName = fileName,
-                    Attributes = finfo.Attributes,
-                    CreationTime = finfo.CreationTime,
-                    LastAccessTime = finfo.LastAccessTime,
-                    LastWriteTime = finfo.LastWriteTime,
-                    Length = 10000,
-                };
+                fileInfo = createVirtualFile(FileAttributes.Directory, 0, fileName);
 
             }
             else
