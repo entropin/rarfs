@@ -1,0 +1,7 @@
+C:\Users\entro\Documents\projekts\smille_rarFS\bin\Release\DokanNetMirror.exe.config
+C:\Users\entro\Documents\projekts\smille_rarFS\bin\Release\DokanNetMirror.exe
+C:\Users\entro\Documents\projekts\smille_rarFS\bin\Release\DokanNetMirror.pdb
+C:\Users\entro\Documents\projekts\smille_rarFS\bin\Release\DokanNet.dll
+C:\Users\entro\Documents\projekts\smille_rarFS\bin\Release\SharpCompress.dll
+C:\Users\entro\Documents\projekts\smille_rarFS\obj\Release\DokanNetMirror.exe
+C:\Users\entro\Documents\projekts\smille_rarFS\obj\Release\DokanNetMirror.pdb
