@@ -8,10 +8,12 @@ using SharpCompress;
 using SharpCompress.Reader;
 using SharpCompress.Common;
 using FileAccess = DokanNet.FileAccess;
+using System.Text;
+using SharpCompress.Archive.Rar;
 
 namespace DokanNetMirror
 {
-    internal class Mirror : IDokanOperations
+    internal class rarfs : IDokanOperations
     {
         private readonly string _path;
         private List<String> rarPaths;
@@ -30,7 +32,7 @@ namespace DokanNetMirror
                                                    FileAccess.GenericWrite;
 
 
-        public Mirror(string path)
+        public rarfs(string path)
         {
             if (!Directory.Exists(path))
                 throw new ArgumentException("path");
@@ -95,10 +97,10 @@ namespace DokanNetMirror
                     }
                     else
                     {
-                        Console.WriteLine("This dose not exist and need to return error or we die! :"+ fileName);
+                        smille_debug("This dose not exist and need to return error or we die! :" + fileName);
                         if (!Path.HasExtension(fileName))
                         {
-                            Console.WriteLine("Allow for virtual folder:"+fileName);
+                            smille_debug("Allow for virtual folder:" + fileName);
                             info.IsDirectory = true;
                             info.Context = new object();
                             return DokanError.ErrorSuccess;
@@ -122,9 +124,9 @@ namespace DokanNetMirror
             }
 
             info.Context = new object();
-            Console.WriteLine("Path:" + pathExists);
-            Console.WriteLine("Mode:" + mode);
-            Console.WriteLine("Createing file:"+fileName);
+            smille_debug("Path:" + pathExists);
+            smille_debug("Mode:" + mode);
+            smille_debug("Createing file:"+fileName);
 
             return DokanError.ErrorSuccess;
         }
@@ -173,20 +175,46 @@ namespace DokanNetMirror
 
         public DokanError ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
-            string loadPath = "E:\\buu\\test.txt";
-            Console.WriteLine("Reading file:"+fileName);
+            string loadPath = GetPath( fileName );
+            Stream stream = null;
+            smille_debug("Reading file:" + fileName);
 
-            /* This is a simple hack to mark files as RARFiles, we need to change this, when we know how! */
-            String parentFolder = System.IO.Path.GetDirectoryName(fileName);
-            if (File.Exists(GetPath(parentFolder) + ".rar"))
-            {
-                loadPath = "E:\\buu\\rar.txt";
-                Console.WriteLine("We are reading a rar File!!!!");
-            }
 
-            /* End hack */
+            /* Check if we are trying open a real file or a virtual one */
+                if (File.Exists( loadPath ))
+                {
+                     stream = new FileStream(loadPath, FileMode.Open, System.IO.FileAccess.Read);
 
-            using (var stream = new FileStream(loadPath, FileMode.Open, System.IO.FileAccess.Read))
+                }
+                else
+                {
+                    /* This is a simple hack to mark files as RARFiles, we need to change this, when we know how! */
+                    String parentFolder = System.IO.Path.GetDirectoryName(fileName);
+                    String rawRarFileUrl = GetPath(parentFolder) + ".rar";
+                    if (File.Exists(rawRarFileUrl))
+                    {
+                        try
+                        {
+                            stream = GetRarFileStream(rawRarFileUrl, fileName);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Cant unrar "+fileName+" : "+ e.Message);
+                        }
+                        
+                        smille_debug("We are reading a rar File!!!!");
+                    }
+                    else
+                    {
+                        // convert string to stream
+                        byte[] byteArray = Encoding.UTF8.GetBytes("This file is a unlinked virtual placeholder");
+                        //byte[] byteArray = Encoding.ASCII.GetBytes(contents);
+                        stream = new MemoryStream(byteArray);
+
+                    }
+                }
+
+            using (stream)
                 {
                     stream.Position = offset;
                     bytesRead = stream.Read(buffer, 0, buffer.Length);
@@ -286,7 +314,7 @@ namespace DokanNetMirror
             else
             {
                 //This is a virtual file
-                Console.WriteLine("###Opening a virtual folder:" + GetPath(fileName));
+                smille_debug("###Opening a virtual folder:" + GetPath(fileName));
                
                 if (File.Exists(GetPath(fileName) + ".rar"))
                 {
@@ -323,42 +351,41 @@ namespace DokanNetMirror
                 }
             }
           
-            finale_files.Add(createVirtualFile(FileAttributes.Directory, 0, "temp_folder"));
-            finale_files.Add(createVirtualFile(FileAttributes.Archive, 888, "test_viertual.txt"));
+            //finale_files.Add(createVirtualFile(FileAttributes.Directory, 0, "temp_folder"));
+            //finale_files.Add(createVirtualFile(FileAttributes.Archive, 888, "test_viertual.txt"));
 
 
 
             return DokanError.ErrorSuccess;
         }
 
-        public static IList<FileInformation> GetRarFileContent(string path)
+        public static IList<FileInformation> GetRarFileContent(string rarUrl)
         {
 
             IList<FileInformation> finale_files = new List<FileInformation>();
-            using (Stream stream = File.OpenRead(path))
+
+            string curFileName = null;
+
+            using (var archive = RarArchive.Open(rarUrl))
             {
-                var reader = ReaderFactory.Open(stream);
-                string curFileName = null;
-                while (reader.MoveToNextEntry())
+                archive.IsMultipartVolume();
+                archive.IsFirstVolume();
+
+                foreach (var entry in archive.Entries)
                 {
-                    if (!reader.Entry.IsDirectory)
+                    if (!entry.IsDirectory)
                     {
+
                         Stream _redaer = new MemoryStream();
-                        reader.WriteEntryTo(_redaer);
-                        curFileName = reader.Entry.FilePath;
+                        entry.WriteTo(_redaer);
+                        curFileName = entry.FilePath;
                         long Length = _redaer.Length;
 
                         FileInformation curFile = createVirtualFile(FileAttributes.ReadOnly, Length, curFileName);
                         finale_files.Add(curFile);
-
-
-                        // reader.WriteEntryToDirectory(@"C:\temp", ExtractOptions.ExtractFullPath | ExtractOptions.Overwrite);
-                    }
-                    else
-                    {
-
                     }
                 }
+
             }
 
             return finale_files;
@@ -367,37 +394,38 @@ namespace DokanNetMirror
 
         public static Stream GetRarFileStream(string rarUrl, string fileName)
         {
+            fileName = Path.GetFileName(fileName);
 
-            using (Stream stream = File.OpenRead(rarUrl))
-            {
-                var reader = ReaderFactory.Open(stream);
-                string curFileName = null;
-                while (reader.MoveToNextEntry())
-                {
-                    if (!reader.Entry.IsDirectory)
+            string curFileName = null;
+
+            using(var archive = RarArchive.Open(rarUrl)) {
+                archive.IsMultipartVolume();
+                archive.IsFirstVolume();
+
+                    foreach (var entry in archive.Entries)
                     {
-                        Stream _redaer = new MemoryStream();
-                        reader.WriteEntryTo(_redaer);
-                        curFileName = reader.Entry.FilePath;
-                        long Length = _redaer.Length;
-
-                        if (curFileName == fileName)
-                        {
-                            Console.WriteLine("Sending back file stream");
-                        }
-                        else
+                        if (!entry.IsDirectory)
                         {
 
-                            Console.WriteLine("CurrFilename" + curFileName);
-                            Console.WriteLine("Filename in parameter" + fileName);
+                            Stream _redaer = new MemoryStream();
+                            entry.WriteTo( _redaer );
+                            curFileName = entry.FilePath;
+                            if (curFileName == fileName)
+                            {
+                                smille_debug("Sending back file stream");
+                                return _redaer;
+                            }
+                            else
+                            {
+
+                                smille_debug("CurrFilename" + curFileName);
+                                smille_debug("Filename in parameter" + fileName);
+                            }
                         }
                     }
-                    else
-                    {
 
-                    }
                 }
-            }
+
 
             return new MemoryStream();
 
@@ -417,6 +445,14 @@ namespace DokanNetMirror
             };
         }
 
+        public static void smille_debug(string msg)
+        {
+            if (false)
+            {
+                Console.WriteLine(msg);
+            }
+            
+        }
 
         public DokanError SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
@@ -572,9 +608,9 @@ namespace DokanNetMirror
         public DokanError GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features,
                                                out string fileSystemName, DokanFileInfo info)
         {
-            volumeLabel = "DOKAN";
+            volumeLabel = "UNRAR_MIRROR";
 
-            fileSystemName = "DOKAN";
+            fileSystemName = "UNRAR_MIRROR";
 
             features = FileSystemFeatures.CasePreservedNames | FileSystemFeatures.CaseSensitiveSearch |
                        FileSystemFeatures.PersistentAcls | FileSystemFeatures.SupportsRemoteStorage |

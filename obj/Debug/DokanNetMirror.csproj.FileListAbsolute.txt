@@ -1,9 +1,10 @@
 C:\Users\entro\Documents\projekts\dokan-dotnet\sample\DokanNetMirror\bin\Debug\DokanNetMirror.exe.config
 C:\Users\entro\Documents\projekts\dokan-dotnet\sample\DokanNetMirror\bin\Debug\DokanNetMirror.exe
 C:\Users\entro\Documents\projekts\dokan-dotnet\sample\DokanNetMirror\bin\Debug\DokanNetMirror.pdb
-C:\Users\entro\Documents\projekts\dokan-dotnet\sample\DokanNetMirror\bin\Debug\DokanNet.dll
 C:\Users\entro\Documents\projekts\dokan-dotnet\sample\DokanNetMirror\bin\Debug\DokanNet.pdb
 C:\Users\entro\Documents\projekts\dokan-dotnet\sample\DokanNetMirror\obj\Debug\DokanNetMirror.csprojResolveAssemblyReference.cache
 C:\Users\entro\Documents\projekts\dokan-dotnet\sample\DokanNetMirror\obj\Debug\DokanNetMirror.exe
 C:\Users\entro\Documents\projekts\dokan-dotnet\sample\DokanNetMirror\obj\Debug\DokanNetMirror.pdb
-C:\Users\entro\Documents\projekts\dokan-dotnet\sample\DokanNetMirror\bin\Debug\SharpCompress.dll
+C:\Users\entro\Documents\temp\rarfs\bin\Debug\DokanNetMirror.exe.config
+C:\Users\entro\Documents\temp\rarfs\obj\Debug\DokanNetMirror.exe
+C:\Users\entro\Documents\temp\rarfs\obj\Debug\DokanNetMirror.pdb
